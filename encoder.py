@@ -13,7 +13,7 @@ collection = connection[db][collection]
 # define transofrmer model (from https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2)
 model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
 
-for x in collection.find({"plot_embedding_hf": {"$exists": False}}, "title": "L", {}).limit(10):
+for x in collection.find({"plot_embedding_hf": {"$exists": False}, "title": "L"}, {}).limit(10):
     # checking if vector already computed for this doc
     if "vector" not in x.keys():
         if "title" in x.keys():
