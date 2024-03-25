@@ -18,7 +18,7 @@ collection = client[db_name][coll_name]
 
 # Initialize text embedding model (encoder)
 embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
-index_name = "vector_index"
+index_name = "movies_vector_index"
 vector_field_name = "plot_embedding_hf"
 text_field_name = "title"
 
