@@ -13,13 +13,13 @@ def embed_collection():
                 movieid = x["_id"]
                 title = x["title"]
                 print("computing vector.. title: " + title)
-                text = title
+                text = f'Title: "{title}" \n'
                 fullplot = None
 
                 # if fullpplot field present, concat it with title
                 if "fullplot" in x.keys():
                     fullplot = x["fullplot"]
-                    text = text + ". " + fullplot
+                    text = text + f'Fullplot: {fullplot}'
 
                 vector = model.encode(text).tolist()
 
