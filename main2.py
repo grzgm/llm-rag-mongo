@@ -1,16 +1,14 @@
 from pymongo import MongoClient
-from langchain.vectorstores import MongoDBAtlasVectorSearch
-from langchain.document_loaders import DirectoryLoader
+from langchain_mongodb import MongoDBAtlasVectorSearch
 from langchain.chains import RetrievalQA
-import gradio as gr
-from gradio.themes.base import Base
-import config
-
-from langchain_community.embeddings.openai import OpenAIEmbeddings
-from langchain.embeddings import HuggingFaceEmbeddings
+from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain.callbacks.manager import CallbackManager
 from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
 from langchain_community.llms import Ollama
+
+import gradio as gr
+from gradio.themes.base import Base
+import config
 
 client = MongoClient(config.mongo_uri)
 dbName = config.db_name
@@ -31,7 +29,7 @@ def query_data(query):
     # Perform Atlas Vector Search using Langchain's vectorStore
     # similarity_search returns MongoDB documents most similar to the query
 
-    docs = vectorStore.similarity_search(query, K=1)
+    docs = vectorStore.similarity_search(query, k=3)
     as_output = docs[0].page_content
 
     # Leveraging Atlas Vector Search paired with Langchain's QARetriever
@@ -54,7 +52,7 @@ def query_data(query):
 
     # Execute the chain
 
-    retriever_output = qa.run(query)
+    retriever_output = qa.invoke(query)["result"]
 
     # Return Atlas Vector Search output, and output generated using RAG Architecture
     return as_output, retriever_output
