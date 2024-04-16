@@ -15,6 +15,8 @@ dbName = config.db_name
 collectionName = config.coll_name
 collection = client[dbName][collectionName]
 
+k = 3 # number of documents to return from similarity search
+
 # Define the text embedding model
 
 embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
@@ -29,8 +31,8 @@ def query_data(query):
     # Perform Atlas Vector Search using Langchain's vectorStore
     # similarity_search returns MongoDB documents most similar to the query
 
-    docs = vectorStore.similarity_search(query, k=3)
-    as_output = docs[0].page_content
+    docs = vectorStore.similarity_search(query, k=k)
+    as_output = [x.page_content for x in (docs)]
 
     # Leveraging Atlas Vector Search paired with Langchain's QARetriever
 
