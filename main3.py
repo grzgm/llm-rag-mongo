@@ -15,6 +15,7 @@ from langchain_community.embeddings import HuggingFaceEmbeddings
 import config
 from custom_components.movie_vector_store import MovieVectorStore
 from custom_components.movie_retriever import MovieRetriever
+from custom_components.movie_prompt_template import PROMPT
 
 client = MongoClient(config.mongo_uri)
 db_name = config.db_name
@@ -55,7 +56,6 @@ retriever = MovieRetriever(movie_vectorstore=movie_vectorstore, search_kwargs={
 # print(list(x for x in output))
 
 from langchain_core.output_parsers import StrOutputParser
-from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnableParallel, RunnablePassthrough
 from langchain_community.llms.ollama import Ollama
 from langchain.callbacks.manager import CallbackManager
@@ -67,18 +67,14 @@ class MyCustomHandler(BaseCallbackHandler):
 
 model = Ollama(model="llama2", callback_manager=CallbackManager([MyCustomHandler()]))
 
-template = """Answer the question based only on the following context:
-{context}
 
-Question: {question}
-"""
-prompt = ChatPromptTemplate.from_template(template)
 output_parser = StrOutputParser()
 
 setup_and_retrieval = RunnableParallel(
     {"context": retriever, "question": RunnablePassthrough()}
 )
-movie_chain = setup_and_retrieval | prompt
+
+movie_chain = setup_and_retrieval | PROMPT
 
 response = movie_chain.invoke('Can you finish the plot of movie titled "L" based on given context?')
 
