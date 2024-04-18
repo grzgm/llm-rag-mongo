@@ -1,3 +1,8 @@
+from langchain_core.documents import Document
+from langchain_core.callbacks.manager import (
+    AsyncCallbackManagerForRetrieverRun,
+    CallbackManagerForRetrieverRun,
+)
 import config
 from pymongo import MongoClient
 from pymongo.collection import Collection
@@ -20,11 +25,6 @@ from typing import (
 )
 from langchain_core.pydantic_v1 import Field
 MongoDBDocumentType = TypeVar("MongoDBDocumentType", bound=Dict[str, Any])
-from langchain_core.callbacks.manager import (
-    AsyncCallbackManagerForRetrieverRun,
-    CallbackManagerForRetrieverRun,
-)
-from langchain_core.documents import Document
 
 
 client = MongoClient(config.mongo_uri)
@@ -226,8 +226,8 @@ class MovieRetriever(BaseRetriever):
     def _get_relevant_documents(
         self, query: str, *, run_manager: CallbackManagerForRetrieverRun
     ) -> List[Document]:
-        docs = self.movie_vectorstore.similarity_search_with_score(
-            query, **self.search_kwargs)
+        docs = list(x for x in self.movie_vectorstore.similarity_search_with_score(
+            query, **self.search_kwargs))
         # if self.search_type == "similarity":
         #     docs = self.vectorstore.similarity_search(
         #         query, **self.search_kwargs)
@@ -258,20 +258,50 @@ custom_projection = {'$project': {
         '$meta': 'vectorSearchScore'
     }}}
 
-embedded_query = embedding_model.embed_query(
-    "A man lives in his car. He is 40 years old and although he does not have a lot of free time")
-output = MovieVectorStore.similarity_search_with_score_static(
-    collection,
-    embedded_query,
-    embedding_key="embedding",
-    index_name="movies_vector_index",
-    custom_projection=custom_projection)
-print(list(x for x in output))
+# embedded_query = embedding_model.embed_query(
+#     "A man lives in his car. He is 40 years old and although he does not have a lot of free time")
+# output = MovieVectorStore.similarity_search_with_score_static(
+#     collection,
+#     embedded_query,
+#     embedding_key="embedding",
+#     index_name="movies_vector_index",
+#     custom_projection=custom_projection)
+# print(list(x for x in output))
 
 movie_vectorstore = MovieVectorStore(
     collection, embedding_model, embedding_key="embedding", index_name="movies_vector_index")
 retriever = MovieRetriever(movie_vectorstore=movie_vectorstore, search_kwargs={
                            "custom_projection": custom_projection})
-output = retriever.get_relevant_documents(
-    "A man lives in his car. He is 40 years old and although he does not have a lot of free time")
-print(list(x for x in output))
+# output = retriever.get_relevant_documents(
+#     "A man lives in his car. He is 40 years old and although he does not have a lot of free time")
+# print(list(x for x in output))
+
+from langchain_core.output_parsers import StrOutputParser
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.runnables import RunnableParallel, RunnablePassthrough
+from langchain_community.llms import Ollama
+from langchain.callbacks.manager import CallbackManager
+from langchain.callbacks.base import BaseCallbackHandler
+
+class MyCustomHandler(BaseCallbackHandler):
+    def on_llm_start(self, serialized: Dict[str, Any], prompts: List[str], **kwargs) -> None:
+        print(f"LLM Formated Prompt: \n {prompts}")
+
+model = Ollama(model="llama2", callback_manager=CallbackManager([MyCustomHandler()]))
+
+template = """Answer the question based only on the following context:
+{context}
+
+Question: {question}
+"""
+prompt = ChatPromptTemplate.from_template(template)
+output_parser = StrOutputParser()
+
+setup_and_retrieval = RunnableParallel(
+    {"context": retriever, "question": RunnablePassthrough()}
+)
+movie_chain = setup_and_retrieval | prompt | model | output_parser
+
+response = movie_chain.invoke('Can you finish the plot of movie titled "L" based on given context?')
+
+print(response)
