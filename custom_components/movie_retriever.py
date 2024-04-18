@@ -6,6 +6,7 @@ from langchain_core.documents import Document
 from langchain_core.pydantic_v1 import Field
 from langchain_core.retrievers import BaseRetriever
 from custom_components.movie_vector_store import MovieVectorStore
+import json
 
 
 class MovieRetriever(BaseRetriever):
@@ -19,7 +20,7 @@ class MovieRetriever(BaseRetriever):
     def _get_relevant_documents(
         self, query: str, *, run_manager: CallbackManagerForRetrieverRun
     ) -> List[Document]:
-        docs = list(x for x in self.movie_vectorstore.similarity_search_with_score(
+        docs = list(json.dumps(x) for x in self.movie_vectorstore.similarity_search_with_score(
             query, **self.search_kwargs))
         # if self.search_type == "similarity":
         #     docs = self.vectorstore.similarity_search(
